@@ -1,0 +1,50 @@
+tunesbot is a Discord bot that scans a channel for YouTube
+video links and adds them to a YouTube playlist.
+
+The bot is capable of:
+
+- adding multiple videos from a single message
+- scanning from where it left off in a previous execution
+
+This bot uses Google's OAuth2 API to authenticate, and
+the https://www.googleapis.com/auth/youtube scope.
+
+===============
+Getting started
+===============
+
+You will need:
+
+- a Discord bot application
+- a Google Developers project and client credentials, with
+https://www.googleapis.com/auth/youtube scope
+https://developers.google.com/youtube/v3/quickstart/nodejs
+
+These steps instruct how to obtain the initial access
+token and refresh token for Google's APIs, as well as
+configure the bot token etc.
+
+Copy your client_secret.json to the secrets directory.
+
+cd to the secrets directory and run the auth.sh script.
+
+    $ cd private
+    $ ./auth.sh
+
+The script presents you with a web link to Google's
+services. Go to this link in a web browser and follow the
+steps. Paste the resulting code in the script's prompt.
+
+The script should generate a token.json file, you may
+confirm this.
+
+...
+
+In the same directory is example-config.json. Make a copy
+of this file. Name the copy config.json and edit.
+
+Now you may run the top-level demo.sh script to start the
+bot. :)
+
+
+vim: et

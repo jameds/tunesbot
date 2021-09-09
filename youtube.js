@@ -29,9 +29,11 @@ POSSIBILITY OF SUCH DAMAGE.
 import process from 'process';
 import fs from 'fs';
 import { google } from 'googleapis';
+import PQueue from 'p-queue';
 import { loadConfig } from './config.js';
 
 const youtube = google.youtube('v3');
+const queue = new PQueue({ concurrency: 1 });
 
 const creds = loadConfig('secrets/client_secret.json');
 const saved_tokens = loadConfig('secrets/token.json');
@@ -75,8 +77,14 @@ ${video} in playlist ${playlist}`);
 			}
 			else
 			{
-				const res = await youtube.playlistItems
-					.insert({
+				/* Make insert requests in serial since it is
+				a request to change something on Google's
+				servers.  Evidently if these calls (presumably
+				on the same resource) overlap, then Google
+				just returns 500. */
+
+				const res = await queue
+					.add(() => youtube.playlistItems.insert({
 						auth: oauth2Client,
 						part: 'snippet',
 						requestBody: {
@@ -88,7 +96,7 @@ ${video} in playlist ${playlist}`);
 								},
 							},
 						},
-					});
+					}));
 
 				console.log(`${video} is position \
 #${res.data.snippet.position} in playlist ${playlist}`);

@@ -1,10 +1,12 @@
 {
+	"type": "module",
 	"name": "tunesbot",
 	"version": "0.1.0",
 	"dependencies": {
 		"discord.js": "^13.1.0",
 		"google-auth-library": "^7.9.1",
 		"googleapis": "^85.0.0",
-		"node-cleanup": "^2.1.2"
+		"node-cleanup": "^2.1.2",
+		"p-queue": "^7.1.0"
 	}
 }

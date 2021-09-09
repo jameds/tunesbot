@@ -26,12 +26,15 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
 
-const fs = require ('fs');
-const { google } = require ('googleapis');
+import process from 'process';
+import fs from 'fs';
+import { google } from 'googleapis';
+import { loadConfig } from './config.js';
+
 const youtube = google.youtube('v3');
 
-const creds = require ('./secrets/client_secret.json');
-const saved_tokens = require ('./secrets/token.json');
+const creds = loadConfig('secrets/client_secret.json');
+const saved_tokens = loadConfig('secrets/token.json');
 
 const oauth2Client = new google.auth.OAuth2(
 	creds.installed.client_id,
@@ -62,7 +65,7 @@ async function playlistCount (playlist, video) {
 	return res.data.pageInfo.totalResults;
 }
 
-exports.appendPlaylist = (playlist, video) => {
+export function appendPlaylist (playlist, video) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			if (await playlistCount(playlist, video))
@@ -100,6 +103,8 @@ ${video} in playlist ${playlist}`);
 			{
 				console.error(error);
 
+				process.exit();
+
 				reject({
 					playlist: playlist,
 					video: video
@@ -116,6 +121,6 @@ https://youtu.be/Ab_9-
 */
 const re = /\bhttps:\/{2}(?:[\w.]*(?<!\w)youtube\.com\/\S*?\bv=|youtu\.be\/)([\w-]+)\b/g
 
-exports.extractVideoIds = (s) => {
+export function extractVideoIds (s) {
 	return Array.from(s.matchAll(re), m => m[1]);
 };

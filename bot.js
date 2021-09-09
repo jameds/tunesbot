@@ -26,12 +26,13 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
 
-const fs = require ('fs');
-const nodeCleanup = require ('node-cleanup');
-const Discord = require ('discord.js');
-const youtube = require ('./youtube.js');
+import fs from 'fs';
+import nodeCleanup from 'node-cleanup';
+import Discord from 'discord.js';
+import { loadConfig } from './config.js';
+import * as youtube from './youtube.js';
 
-const config = require ('./secrets/config.json');
+const config = loadConfig('secrets/config.json');
 
 function readFileIfExists (path) {
 	try {

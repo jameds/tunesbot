@@ -70,6 +70,43 @@ client.on('messageCreate', (message) => {
 	}
 });
 
+client.on('interactionCreate', async (interaction) => {
+	if (interaction.isButton() &&
+		interaction.component.customId === 'force' &&
+		interaction.message.author.id === client.user.id)
+	{
+		/* leftover button should be removed */
+		if (config.strict)
+		{
+			interaction.update({ components: [] });
+		}
+		else
+		{
+			/* provide some button feedback */
+			const button = new Discord
+				.MessageButton(interaction.component)
+				.setStyle('SUCCESS')
+				.setDisabled(true);
+
+			const row = new Discord.MessageActionRow()
+				.addComponents(button);
+
+			const message = interaction.message;
+
+			/* reply to original message, not bot reply */
+			const origin = (message.type === 'REPLY' ?
+				await message.fetchReference() : message);
+
+			interaction.update({ components: [row] });
+
+			/* bypass checking the duration */
+			addToPlaylist(youtube
+				.extractVideoIds(message.content))
+				.catch((q) => playlistError(origin, q));
+		}
+	}
+});
+
 client.on('ready', () => {
 	console.log('login ' + client.user.id);
 
@@ -109,6 +146,11 @@ and a DM sent to the technician.`);
 	tech.send(reply.url);
 }
 
+function addToPlaylist (videos) {
+	return Promise.all(videos.map((video) =>
+		youtube.appendPlaylist(config.playlist, video)));
+}
+
 /* finds the youtube video ids in a discord message and
 attempts to add each to the playlist */
 function scanMessage (message) {
@@ -121,16 +163,35 @@ function scanMessage (message) {
 			.then(({ short, long }) => {
 				if (long.length)
 				{
-					message.reply('These videos exceed \
-the duration limit: ' + formatId(long));
+					const reply = 'These videos exceed \
+the duration limit: ' + formatId(long);
+
+					if (config.strict)
+						message.reply(reply);
+					else
+					{
+						/* provide a button to bypass the
+						duration limit */
+
+						const button =
+							new Discord.MessageButton()
+							.setStyle('SECONDARY')
+							.setCustomId('force')
+							.setLabel('Add anyway');
+
+						const row =
+							new Discord.MessageActionRow()
+							.addComponents(button);
+
+						message.reply({
+							content: reply,
+							components: [row]
+						});
+					}
 				}
 
-				short.forEach((video) => youtube
-					.appendPlaylist(config.playlist, video));
-			})
-			.catch((q) => {
-				playlistError(message, q);
-			});
+				addToPlaylist(short);
+			}).catch((q) => playlistError(message, q));
 	}
 }
 

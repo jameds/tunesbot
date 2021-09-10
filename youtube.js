@@ -26,7 +26,6 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
 
-import process from 'process';
 import fs from 'fs';
 import { google } from 'googleapis';
 import PQueue from 'p-queue';
@@ -111,8 +110,6 @@ ${video} in playlist ${playlist}`);
 		if (error.code !== 404)
 		{
 			console.error(error);
-
-			process.exit();
 
 			throw {
 				playlist: playlist,

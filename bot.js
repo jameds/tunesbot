@@ -107,10 +107,21 @@ and a DM sent to the technician.`);
 /* finds the youtube video ids in a discord message and
 attempts to add each to the playlist */
 function scanMessage (message) {
-	youtube.extractVideoIds(message.content)
-		.forEach((video) => {
-			youtube.appendPlaylist(config.playlist, video)
-				.catch((q) => playlistError(message, q));
+	const list = youtube.extractVideoIds(message.content);
+
+	youtube.checkDuration(list, config.maxDuration)
+		.then(({ short, long }) => {
+			if (long.length)
+			{
+				message.reply(`These videos exceed \
+the duration limit: \`${long.join('`, `')}\``);
+			}
+
+			short.forEach((video) => youtube
+				.appendPlaylist(config.playlist, video));
+		})
+		.catch((q) => {
+			playlistError(message, q);
 		});
 }
 

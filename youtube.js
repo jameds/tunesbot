@@ -30,6 +30,7 @@ import process from 'process';
 import fs from 'fs';
 import { google } from 'googleapis';
 import PQueue from 'p-queue';
+import duration from 'iso8601-duration';
 import { loadConfig } from './config.js';
 
 const youtube = google.youtube('v3');
@@ -121,6 +122,30 @@ ${video} in playlist ${playlist}`);
 		}
 	});
 };
+
+export async function
+checkDuration (videos, maxDuration) {
+	if (!videos.length || maxDuration === undefined)
+		return { short: videos, long: [] };
+	else
+	{
+		const res = await youtube.videos.list({
+			auth: oauth2Client,
+			part: 'contentDetails',
+			id: videos.join(),
+		});
+
+		/* construct an array of each video resource with
+		a longer duration than maxDuration */
+		const long = res.data.items.filter((part) =>
+			duration.toSeconds(duration.parse(part
+				.contentDetails.duration)) > maxDuration)
+				.map((part) => part.id);
+
+		return { short: videos.filter((video) =>
+			!long.includes(video)), long };
+	}
+}
 
 /*
 https://www.youtube.com/?watch?v=Ab_9-

@@ -125,21 +125,30 @@ checkDuration (videos, maxDuration) {
 		return { short: videos, long: [] };
 	else
 	{
-		const res = await youtube.videos.list({
-			auth: oauth2Client,
-			part: 'contentDetails',
-			id: videos.join(),
-		});
+		try {
+			const res = await youtube.videos.list({
+				auth: oauth2Client,
+				part: 'contentDetails',
+				id: videos.join(),
+			});
 
-		/* construct an array of each video resource with
-		a longer duration than maxDuration */
-		const long = res.data.items.filter((part) =>
-			duration.toSeconds(duration.parse(part
-				.contentDetails.duration)) > maxDuration)
-				.map((part) => part.id);
+			/* construct an array of each video resource with
+			a longer duration than maxDuration */
+			const long = res.data.items.filter((part) =>
+				duration.toSeconds(duration.parse(part
+					.contentDetails.duration)) > maxDuration)
+					.map((part) => part.id);
 
-		return { short: videos.filter((video) =>
-			!long.includes(video)), long };
+			return { short: videos.filter((video) =>
+				!long.includes(video)), long };
+		}
+		catch (error) {
+			console.error(error);
+
+			throw {
+				video: videos
+			};
+		}
 	}
 }
 

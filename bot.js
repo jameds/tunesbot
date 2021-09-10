@@ -94,9 +94,14 @@ function getTechnician (channel) {
 		.fetch(config.technician);
 }
 
+function formatId (video) {
+	return Array.from(video).map((video) =>
+		`<https://youtu.be/${video}>`).join('\n');
+}
+
 async function playlistError (message, request) {
-	const reply = await message.reply(`There was an \
-error adding \`${request.video}\`, this has been logged
+	const reply = await message.reply(`There was an error \
+adding ${formatId(request.video)}, this has been logged
 and a DM sent to the technician.`);
 
 	const tech = await getTechnician(message.channel);
@@ -116,8 +121,8 @@ function scanMessage (message) {
 			.then(({ short, long }) => {
 				if (long.length)
 				{
-					message.reply(`These videos exceed \
-the duration limit: \`${long.join('`, `')}\``);
+					message.reply('These videos exceed \
+the duration limit: ' + formatId(long));
 				}
 
 				short.forEach((video) => youtube

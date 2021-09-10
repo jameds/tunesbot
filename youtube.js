@@ -68,59 +68,58 @@ async function playlistCount (playlist, video) {
 	return res.data.pageInfo.totalResults;
 }
 
-export function appendPlaylist (playlist, video) {
-	return new Promise(async (resolve, reject) => {
-		try {
-			if (await playlistCount(playlist, video))
-			{
-				console.log(`ignored duplicate \
+export async function
+appendPlaylist (playlist, video) {
+	try {
+		if (await playlistCount(playlist, video))
+		{
+			console.log(`ignored duplicate \
 ${video} in playlist ${playlist}`);
-			}
-			else
-			{
-				/* Make insert requests in serial since it is
-				a request to change something on Google's
-				servers.  Evidently if these calls (presumably
-				on the same resource) overlap, then Google
-				just returns 500. */
+		}
+		else
+		{
+			/* Make insert requests in serial since it is
+			a request to change something on Google's
+			servers.  Evidently if these calls (presumably on
+			the same resource) overlap, then Google just
+			returns 500. */
 
-				const res = await queue
-					.add(() => youtube.playlistItems.insert({
-						auth: oauth2Client,
-						part: 'snippet',
-						requestBody: {
-							snippet: {
-								playlistId: playlist,
-								resourceId: {
-									kind: 'youtube#video',
-									videoId: video,
-								},
+			const res = await queue
+				.add(() => youtube.playlistItems.insert({
+					auth: oauth2Client,
+					part: 'snippet',
+					requestBody: {
+						snippet: {
+							playlistId: playlist,
+							resourceId: {
+								kind: 'youtube#video',
+								videoId: video,
 							},
 						},
-					}));
+					},
+				}));
 
-				console.log(`${video} is position \
+			console.log(`${video} is position \
 #${res.data.snippet.position} in playlist ${playlist}`);
-			}
 		}
-		catch (error) {
-			/* 404 means video id is invalid. That would be
-			obvious to Discord users, since there would
-			probably not be an embed. */
+	}
+	catch (error) {
+		/* 404 means video id is invalid. That would be
+		obvious to Discord users, since there would probably
+		not be an embed. */
 
-			if (error.code !== 404)
-			{
-				console.error(error);
+		if (error.code !== 404)
+		{
+			console.error(error);
 
-				process.exit();
+			process.exit();
 
-				reject({
-					playlist: playlist,
-					video: video
-				});
-			}
+			throw {
+				playlist: playlist,
+				video: video
+			};
 		}
-	});
+	}
 };
 
 export async function

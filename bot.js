@@ -136,7 +136,7 @@ function formatId (video) {
 		`<https://youtu.be/${video}>`).join('\n');
 }
 
-async function playlistError (message, request) {
+async function logError (message, request) {
 	const reply = await message.reply(`There was an error \
 adding ${formatId(request.video)}, this has been logged
 and a DM sent to the technician.`);
@@ -144,6 +144,18 @@ and a DM sent to the technician.`);
 	const tech = await getTechnician(message.channel);
 
 	tech.send(reply.url);
+}
+
+function playlistError (message, request) {
+	/* execution paused, minutes until resumes */
+	if ('delay' in request)
+	{
+		message.reply(`The quota limit was reached for \
+today, will resume in ${request.delay} minutes (midnight \
+Pacific Time)`);
+	}
+	else
+		logError(message, request);
 }
 
 function addToPlaylist (videos) {

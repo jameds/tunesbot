@@ -34,6 +34,7 @@ import { loadConfig } from './config.js';
 
 const youtube = google.youtube('v3');
 const queue = new PQueue({ concurrency: 1 });
+const fastQueue = new PQueue();
 
 const creds = loadConfig('secrets/client_secret.json');
 const saved_tokens = loadConfig('secrets/token.json');
@@ -56,13 +57,40 @@ oauth2Client.on('tokens', (tokens) => {
 
 oauth2Client.setCredentials(saved_tokens);
 
+function err (error, request) {
+	if (error.errors[0].reason === 'quotaExceeded')
+	{
+		queue.pause();
+		fastQueue.pause();
+
+		/* quota lifts at midnight Pacific Time */
+		const midnight = new Date();
+		const delay = (midnight
+			.setUTCHours(8, 0, 0, 0) - Date.now());
+
+		setTimeout(() => {
+			queue.start();
+			fastQueue.start();
+		}, delay);
+
+		request.delay = Math.trunc(delay / 60000);
+
+		console.log('Pausing until ' + midnight);
+	}
+	else
+		console.error(error);
+
+	throw request;
+}
+
 async function playlistCount (playlist, video) {
-	const res = await youtube.playlistItems.list({
-		auth: oauth2Client,
-		part: 'id',
-		playlistId: playlist,
-		videoId: video,
-	});
+	const res = await fastQueue.add(() =>
+		youtube.playlistItems.list({
+			auth: oauth2Client,
+			part: 'id',
+			playlistId: playlist,
+			videoId: video,
+		}));
 
 	return res.data.pageInfo.totalResults;
 }
@@ -83,8 +111,8 @@ ${video} in playlist ${playlist}`);
 			the same resource) overlap, then Google just
 			returns 500. */
 
-			const res = await queue
-				.add(() => youtube.playlistItems.insert({
+			const res = await queue.add(() =>
+				youtube.playlistItems.insert({
 					auth: oauth2Client,
 					part: 'snippet',
 					requestBody: {
@@ -109,12 +137,10 @@ ${video} in playlist ${playlist}`);
 
 		if (error.code !== 404)
 		{
-			console.error(error);
-
-			throw {
+			err(error, {
 				playlist: playlist,
 				video: video
-			};
+			});
 		}
 	}
 };
@@ -126,11 +152,12 @@ checkDuration (videos, maxDuration) {
 	else
 	{
 		try {
-			const res = await youtube.videos.list({
-				auth: oauth2Client,
-				part: 'contentDetails',
-				id: videos.join(),
-			});
+			const res = await fastQueue.add(() =>
+				youtube.videos.list({
+					auth: oauth2Client,
+					part: 'contentDetails',
+					id: videos.join(),
+				}));
 
 			/* construct an array of each video resource with
 			a longer duration than maxDuration */
@@ -143,11 +170,9 @@ checkDuration (videos, maxDuration) {
 				!long.includes(video)), long };
 		}
 		catch (error) {
-			console.error(error);
-
-			throw {
+			err(error, {
 				video: videos
-			};
+			});
 		}
 	}
 }

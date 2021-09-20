@@ -70,6 +70,11 @@ client.on('messageCreate', (message) => {
 	}
 });
 
+client.on('messageUpdate', (old, message) => {
+	if (message.channelId === config.channel)
+		scanMessage(message);
+});
+
 client.on('interactionCreate', async (interaction) => {
 	if (interaction.isButton() &&
 		interaction.component.customId === 'force' &&

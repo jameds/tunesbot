@@ -58,7 +58,8 @@ oauth2Client.on('tokens', (tokens) => {
 oauth2Client.setCredentials(saved_tokens);
 
 function err (error, request) {
-	if (error.errors[0].reason === 'quotaExceeded')
+	if ('errors' in error &&
+		error.errors[0].reason === 'quotaExceeded')
 	{
 		queue.pause();
 		fastQueue.pause();

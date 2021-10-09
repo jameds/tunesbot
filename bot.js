@@ -75,6 +75,16 @@ client.on('messageUpdate', (old, message) => {
 		scanMessage(message);
 });
 
+client.on('threadCreate', (thread) => {
+	thread.send({
+		embeds: [{
+			color: 30719,
+			title: 'TIP: You can make this thread' +
+			' permanent by using the `/noarchive` command.',
+		}],
+	});
+});
+
 client.on('threadUpdate', (old, thread) => {
 	if (config.autoUnarchiveThreads.includes(thread.id) &&
 		!old.archived)

@@ -75,8 +75,54 @@ client.on('messageUpdate', (old, message) => {
 		scanMessage(message);
 });
 
+client.on('threadUpdate', (old, thread) => {
+	if (config.autoUnarchiveThreads.includes(thread.id) &&
+		!old.archived)
+	{
+		unarchiveThread(thread);
+		forgetThread(thread);
+	}
+});
+
 client.on('interactionCreate', async (interaction) => {
-	if (interaction.isButton() &&
+	if (interaction.isCommand())
+	{
+		switch (interaction.commandName)
+		{
+			case 'noarchive':
+				if (assertThreadCommand(interaction.channel))
+				{
+					interaction.reply('This thread will' +
+						' never be automatically archived.');
+
+					interaction.channel.setArchived(false);
+
+					const set = config.autoUnarchiveThreads;
+					const id = interaction.channelId;
+
+					if (!set.includes(id))
+						set.push(id);
+				}
+				break;
+
+			case 'archive':
+				if (assertThreadCommand(interaction.channel))
+				{
+					await interaction.reply({
+						content: 'This thread is now archived.',
+						ephemeral: true,
+					});
+
+					/* Forget about it so this doesn't get
+					undone with unarchiveThread (because we're
+					not setting the lock state). */
+					forgetThread(interaction.channel);
+					archiveThread(interaction.channel);
+				}
+				break;
+		}
+	}
+	else if (interaction.isButton() &&
 		interaction.component.customId === 'force' &&
 		interaction.message.author.id === client.user.id)
 	{
@@ -116,6 +162,10 @@ client.on('ready', () => {
 	console.log('login ' + client.user.id);
 
 	runBacklog(lastMessageId);
+
+	config.autoUnarchiveThreads
+		.forEach((id) => client.channels.fetch(id)
+			.then(unarchiveThread));
 });
 
 /* always runs when program ends */
@@ -125,6 +175,8 @@ nodeCleanup(() => {
 	{
 		fs.writeFileSync('secrets/last-message-id',
 			lastMessageId);
+		fs.writeFileSync('secrets/config.json',
+			JSON.stringify(config, null, '\t') + '\n');
 	}
 });
 
@@ -247,4 +299,51 @@ async function runBacklog (start) {
 		if (!firstMessageId)
 			lastMessageId = end;
 	}
+}
+
+function assertThreadCommand (channel) {
+	if (channel.isThread())
+		return true;
+	else
+	{
+		interaction.reply({
+			content: 'This command only works on' +
+			' threads.',
+			ephemeral: true,
+		});
+
+		return false;
+	}
+
+}
+
+function unarchiveThread (thread) {
+	if (thread.archived)
+	{
+		/* don't bother with threads that were manually
+		archived */
+		if (thread.locked)
+			forgetThread(thread);
+		else
+			thread.setArchived(false);
+	}
+}
+
+async function forgetThread (thread) {
+	const set = config.autoUnarchiveThreads;
+	const p = set.indexOf(thread.id);
+
+	if (p !== -1)
+		set.splice(p, 1);
+}
+
+async function archiveThread (thread) {
+	if (thread.archived && thread.locked)
+	{
+		/* can't unlock while archived for some reason */
+		await thread.setArchived(false);
+		await thread.setLocked(false);
+	}
+
+	thread.setArchived();
 }

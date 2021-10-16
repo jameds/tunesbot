@@ -90,7 +90,6 @@ client.on('threadUpdate', (old, thread) => {
 		!old.archived)
 	{
 		unarchiveThread(thread);
-		forgetThread(thread);
 	}
 });
 
